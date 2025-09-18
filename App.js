@@ -2,6 +2,11 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 import * as Location from 'expo-location';
 import { Audio } from 'expo-av';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import SplashScreen from './SplashScreen';
+
+const Stack = createNativeStackNavigator();
 
 const TREASURE = {
   latitude: -23.11453,
@@ -33,7 +38,7 @@ function getBearing(lat1, lon1, lat2, lon2) {
   return (brng + 360) % 360;
 }
 
-export default function App() {
+function MainApp() {
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [steps, setSteps] = useState(0);
@@ -65,10 +70,15 @@ export default function App() {
   };
 
   const animateBackground = (distSteps) => {
-    const value = distSteps < 50 ? 1 : 0;
+    let targetValue = 0;
+    if (distSteps < 10) targetValue = 3; 
+    else if (distSteps < 25) targetValue = 2; 
+    else if (distSteps < 50) targetValue = 1; 
+    else targetValue = 0; 
+
     Animated.timing(backgroundColor, {
-      toValue: value,
-      duration: 500,
+      toValue: targetValue,
+      duration: 400,
       useNativeDriver: false,
     }).start();
   };
@@ -109,7 +119,6 @@ export default function App() {
           
           return () => clearInterval(interval);
         } else {
-          // Atualizações rápidas para celular
           watchSubscription.current = await Location.watchPositionAsync(
             {
               accuracy: Location.Accuracy.BestForNavigation,
@@ -147,7 +156,7 @@ export default function App() {
       updateHint(stepsCalc);
       animateBackground(stepsCalc);
 
-      if (dist < 5) {
+      if (dist < 2) {
         setFound(true);
         playSound();
       }
@@ -171,8 +180,8 @@ export default function App() {
   }, [location, found]);
 
   const interpolatedColor = backgroundColor.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['#87CEFA', '#FF4500']
+    inputRange: [0, 1, 2, 3],
+    outputRange: ['#87CEFA', '#ADD8E6', '#FFA500', '#FF4500'] // Frio → Morno → Quente → Muito quente
   });
 
   if (errorMsg) {
@@ -211,7 +220,7 @@ export default function App() {
       
       {found && (
         <View style={styles.foundContainer}>
-          <Text style={styles.foundText}>🎉 Tesouro encontrado! 🎉</Text>
+          <Text style={styles.foundText}>Tesouro encontrado! 🎉</Text>
         </View>
       )}
 
@@ -223,6 +232,17 @@ export default function App() {
         </View>
       )}
     </Animated.View>
+  );
+}
+
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Splash" screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Splash" component={SplashScreen} />
+        <Stack.Screen name="Main" component={MainApp} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
